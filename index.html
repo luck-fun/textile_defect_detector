@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детектор дефектов ткани</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; display: flex; align-items: center; min-height: 100vh; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        #preview { max-width: 100%; height: auto; display: none; margin-top: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card p-4">
+                <h3 class="text-center mb-4">Анализ качества ткани</h3>
+                
+                <div class="mb-3">
+                    <label for="imageInput" class="form-label">Выберите фото ткани</label>
+                    <input class="form-control" type="file" id="imageInput" accept="image/*" onchange="showPreview()">
+                </div>
+
+                <div class="text-center">
+                    <img id="preview" alt="Предпросмотр">
+                </div>
+
+                <button class="btn btn-success w-100 mt-4" onclick="sendToAI()">Проверить через нейросеть</button>
+
+                <div id="result" class="alert mt-4 text-center" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showPreview() {
+        const file = document.getElementById('imageInput').files[0];
+        const preview = document.getElementById('preview');
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'inline-block';
+        }
+    }
+
+    async function sendToAI() {
+        const fileInput = document.getElementById('imageInput');
+        const resultDiv = document.getElementById('result');
+
+        if (fileInput.files.length === 0) {
+            alert("Загрузите файл!");
+            return;
+        }
+
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'alert alert-secondary';
+        resultDiv.innerText = "Идет обработка...";
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.class_en === 'defect free') {
+                resultDiv.className = 'alert alert-success';
+            } else {
+                resultDiv.className = 'alert alert-danger';
+            }
+            resultDiv.innerText = data.verdict;
+
+        } catch (e) {
+            resultDiv.className = 'alert alert-danger';
+            resultDiv.innerText = "Ошибка сервера";
+        }
+    }
+</script>
+
+</body>
+</html>
